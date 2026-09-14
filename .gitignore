@@ -1,0 +1,16 @@
+# 订阅地址、令牌等凭据一律不得入库
+subscription.txt
+**/subscription.txt
+
+# 本地运行时状态
+settings.json
+**/settings.json
+run/
+**/run/
+*.log
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
