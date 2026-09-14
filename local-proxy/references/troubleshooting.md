@@ -63,6 +63,19 @@ node "C:/.../proxy.mjs" run "\"C:/Program Files/nodejs/node.exe\" script.mjs"
 
 ---
 
+### `schannel: failed to receive handshake, SSL/TLS connection failed`
+
+**这是瞬时抖动，不是配置问题** —— 机场节点偶发握手失败，直接重试同一条命令即可，实测重试就通。
+（本项目推送仓库时真实遇到过：第一次 `git push` 报这个错，原样重试一次就成功。）
+
+判断依据：报错时 `proxy.mjs run` 会自己做一次出口探测。
+- 探测**通过** → 代理链路是好的，纯节点抖动 → 重试；
+- 探测**失败** → 节点本身不可用 → `proxy.mjs pick auto` 换一个。
+
+如果反复出现，用 `proxy.mjs pick 日本1` 之类指定一个稳定节点，别一直依赖自动选速。
+
+---
+
 ### 端口被占用
 
 `settings.json` 里改 `proxyPort` / `controllerPort`，然后 `refresh`。

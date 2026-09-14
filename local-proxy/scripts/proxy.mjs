@@ -531,6 +531,10 @@ async function cmdRun(st, argv) {
     if (!probe.ok) {
       hint = '[local-proxy] hint: proxy exit check FAILED, so the node is probably unreachable.\n'
         + '            inspect with: proxy.mjs nodes   then: proxy.mjs pick auto';
+    } else {
+      hint = '[local-proxy] hint: the proxy itself is healthy, so this is likely a transient node failure\n'
+        + '            (typical symptom: "schannel: failed to receive handshake, SSL/TLS connection failed").\n'
+        + '            Just retry the same command; if it keeps failing, run: proxy.mjs pick auto';
     }
   }
 
