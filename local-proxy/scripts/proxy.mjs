@@ -290,7 +290,17 @@ function buildConfig(subText, st) {
 async function writeFreshConfig(st, { quiet = false } = {}) {
   const url = getSubUrl();
   if (!url) {
-    throw new Error('no subscription configured. Write the subscription URL into:\n  ' + SUB_FILE);
+    throw new Error(
+      '还没有配置订阅地址，这是唯一的必填项。\n'
+      + '\n'
+      + '  需要做的（只需一次）:\n'
+      + '    1) 打开你机场(VPN 服务商)官网 -> 用户中心 -> 「一键订阅」/「Clash 订阅」-> 复制链接\n'
+      + '    2) 新建一个文本文件，把链接单独一行粘贴进去（不要加引号、不要有空格）\n'
+      + '       保存为: ' + SUB_FILE + '\n'
+      + '    3) 重新执行: proxy.mjs refresh\n'
+      + '\n'
+      + '  提示: 订阅地址等同于账号密码，不要发给别人、不要贴进聊天、不要提交进 git 仓库。',
+    );
   }
   if (!quiet) out('fetching subscription ...');
   const r = await fetchSubscription(url);

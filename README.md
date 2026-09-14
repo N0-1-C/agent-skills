@@ -91,10 +91,27 @@ node "C:/Users/pc/.workbuddy/skills/local-proxy/scripts/proxy.mjs" doctor
 
 输出分 `host` / `skill` 两段，`[!!]` 是必须修的，`[--]` 是可选项缺失（正常）。
 
-### 你需要准备的
+### 用之前需要准备什么
 
-一个 Clash 格式的订阅地址（机场订阅），写进 `~/.workbuddy/local-proxy/subscription.txt`。
-**这个文件等同账号密码，不要提交进任何仓库。**
+**只有一样：一个 Clash 格式的订阅地址**（就是你的机场/VPN 服务商给你的那条订阅链接）。
+每个 skill 必备的东西都写在它自己的 `SKILL.md` 里，拿到目录先看那个文件。
+
+`local-proxy` 的填写步骤：
+
+1. 打开机场官网 → 用户中心 → 找「一键订阅」或「Clash 订阅」→ 复制链接
+2. 把链接**单独一行**粘贴进 `~/.workbuddy/local-proxy/subscription.txt`（不要加引号、不要有空格）
+3. 执行 `refresh` 让它生效：
+
+```bash
+node "<skill目录>/scripts/proxy.mjs" refresh
+```
+
+看到 `config written` 加一行套餐信息（已用流量 / 到期日）就是成功了。
+
+> ⚠️ 订阅地址等同于账号密码。不要发给别人、不要贴进聊天、不要提交进 git 仓库。
+> 仓库的 `.gitignore` 已经排除了这个文件名，但仍请自行注意。
+
+其余依赖（内核、GeoIP 数据库）都已随仓库提供，不需要额外下载，也不需要管理员权限。
 
 ### 已经实测过的通道
 
@@ -107,6 +124,38 @@ node "C:/Users/pc/.workbuddy/skills/local-proxy/scripts/proxy.mjs" doctor
 | Node `fetch`（v24，需 `NODE_USE_ENV_PROXY=1`） | ✅ |
 | npm / pip | ✅ |
 | Node `fetch`（v22 及以下） | ❌ undici 不读 `*_PROXY` |
+
+---
+
+## 分享给别人 / 让别的 AI 帮忙安装
+
+把**仓库链接**和下面这段**提示词**一起发出去。对方只需要把提示词粘给他的 AI，
+再把订阅地址填进尖括号里，剩下全部会自动完成。
+
+**链接**：<https://github.com/N0-1-C/agent-skills>
+
+**提示词**：
+
+```text
+请帮我安装并使用 agent-skills 仓库里的 local-proxy 技能。
+
+它的作用：让我交给你的联网命令临时走一个只对这条命令生效的代理，
+不修改我系统的代理开关、路由表或 DNS，用完即走。
+
+1. 安装：从 https://github.com/N0-1-C/agent-skills 获取仓库，把 local-proxy 目录完整复制到
+   ~/.workbuddy/skills/local-proxy/
+2. 配置：我的机场订阅地址是 <在这里粘贴你的 Clash 订阅链接>
+   请把它单独一行写入 ~/.workbuddy/local-proxy/subscription.txt
+   （如果我没有提供地址，就告诉我该去哪儿复制，不要自己编一个）
+3. 自检：执行 node "<skill目录>/scripts/proxy.mjs" doctor
+   确认 host requirements 与 skill files and config 两段的必需项都是 [ok]；
+   [--] 是可选项缺失，属正常
+4. 验证：执行 node "<skill目录>/scripts/proxy.mjs" run "git ls-remote https://github.com/git/git.git HEAD"
+   能打印出一个 commit hash 就说明通了
+5. 以后凡是我要求你做的事需要访问外网（git push/pull、npm/pip 安装、调用境外 API、
+   下载境外文件），都套用：node "<skill目录>/scripts/proxy.mjs" run "<原命令>"
+6. 全程不要修改我的系统代理、路由表、DNS，也不要使用 TUN 模式
+```
 
 ---
 
