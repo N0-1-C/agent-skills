@@ -339,6 +339,24 @@ async function probeEgress(st) {
   return { ok: false };
 }
 
+/**
+ * Force a real TLS handshake through the proxy before handing control to the
+ * caller's command. Observed in practice: on a cold start the first TLS connection
+ * (git over schannel is the usual victim) can be dropped mid-handshake, while the
+ * very same command succeeds on a retry. Doing the handshake here, with retries,
+ * absorbs that flakiness instead of letting it surface as a confusing git error.
+ */
+async function warmUp(st, tries = 3) {
+  for (let i = 1; i <= tries; i++) {
+    try {
+      const r = await httpsGet('https://github.com/', { proxyPort: st.proxyPort, timeout: 12000 });
+      if (r.status && r.status < 500) return { ok: true, attempts: i, status: r.status };
+    } catch { /* retry */ }
+    if (i < tries) await sleep(500);
+  }
+  return { ok: false, attempts: tries };
+}
+
 async function startCore(st) {
   if (!fs.existsSync(BIN)) throw new Error('core binary missing: ' + BIN);
   if (!fs.existsSync(CONFIG_FILE)) throw new Error('config missing - run: proxy.mjs refresh');
@@ -509,6 +527,12 @@ async function cmdRun(st, argv) {
     const r = await ensureUp(st);
     started = r.started;
     out('[local-proxy] proxy ready on 127.0.0.1:' + st.proxyPort + ' (' + (started ? 'started' : 'reused') + ')');
+    const warm = await warmUp(st);
+    if (!warm.ok) {
+      out('[local-proxy] warn: TLS handshake through the proxy failed ' + warm.attempts + 'x - the node looks flaky, running the command anyway');
+    } else if (warm.attempts > 1) {
+      out('[local-proxy] note: TLS warm-up only succeeded on attempt ' + warm.attempts + ' - node is flaky right now');
+    }
   }
 
   const env = { ...process.env, ...proxyEnv(st) };
