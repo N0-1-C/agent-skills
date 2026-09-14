@@ -17,6 +17,7 @@ import os from 'node:os';
 import net from 'node:net';
 import http from 'node:http';
 import https from 'node:https';
+import tls from 'node:tls';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -84,10 +85,31 @@ function proxyConnect(proxyPort, host, port) {
   });
 }
 
+/**
+ * An https.Agent whose connections are tunnelled through the local HTTP proxy.
+ *
+ * Note the TLS step: createConnection must hand back a *TLS* socket, not the raw
+ * tunnel socket. Returning the bare CONNECT socket (the obvious first attempt)
+ * silently produces plaintext HTTP on a TLS port - the request then dies in the
+ * handshake and every caller looks like a flaky node.
+ */
 class HttpsOverProxy extends https.Agent {
-  constructor(proxyPort) { super({ keepAlive: false }); this.proxyPort = proxyPort; }
+  constructor(proxyPort) {
+    super({ keepAlive: false });
+    this.proxyPort = proxyPort;
+  }
+
   createConnection(options, cb) {
-    proxyConnect(this.proxyPort, options.host, options.port || 443).then((s) => cb(null, s), (e) => cb(e));
+    proxyConnect(this.proxyPort, options.host, options.port || 443).then((sock) => {
+      const tlsSocket = tls.connect({
+        socket: sock,
+        servername: options.servername || options.host,
+        rejectUnauthorized: options.rejectUnauthorized !== false,
+        ALPNProtocols: ['http/1.1'],
+      });
+      tlsSocket.once('secureConnect', () => cb(null, tlsSocket));
+      tlsSocket.once('error', (err) => cb(err));
+    }, (err) => cb(err));
   }
 }
 
@@ -345,11 +367,17 @@ async function probeEgress(st) {
  * (git over schannel is the usual victim) can be dropped mid-handshake, while the
  * very same command succeeds on a retry. Doing the handshake here, with retries,
  * absorbs that flakiness instead of letting it surface as a confusing git error.
+ *
+ * The target is deliberately api.github.com, not github.com: through these nodes
+ * the apex site is the flakiest endpoint of the family, which would produce false
+ * "node is flaky" warnings.
  */
+const WARMUP_URL = 'https://api.github.com/zen';
+
 async function warmUp(st, tries = 3) {
   for (let i = 1; i <= tries; i++) {
     try {
-      const r = await httpsGet('https://github.com/', { proxyPort: st.proxyPort, timeout: 12000 });
+      const r = await httpsGet(WARMUP_URL, { proxyPort: st.proxyPort, timeout: 12000 });
       if (r.status && r.status < 500) return { ok: true, attempts: i, status: r.status };
     } catch { /* retry */ }
     if (i < tries) await sleep(500);
@@ -490,7 +518,7 @@ async function cmdStatus(st) {
     try {
       const api = await localApiGet(st.controllerPort, '/proxies');
       const proxies = JSON.parse(api.body).proxies || {};
-      const sel = Object.values(proxies).filter((p) => p.type === 'Selector');
+      const sel = Object.values(proxies).filter((p) => p.type === 'Selector' && p.name !== 'GLOBAL');
       for (const g of sel) out('selector   : ' + g.name + ' -> ' + g.now);
     } catch { /* controller may be off */ }
     try {
