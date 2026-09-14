@@ -30,6 +30,18 @@ git clone https://github.com/N0-1-C/agent-skills.git
 Copy-Item -Recurse agent-skills\local-proxy "$env:USERPROFILE\.workbuddy\skills\"
 ```
 
+**国内访问 GitHub 慢的话，用 Gitee 镜像**（内容完全同步，提交号一致）：
+
+```bash
+git clone https://gitee.com/cqhup/agent-skills.git
+cp -r agent-skills/local-proxy ~/.workbuddy/skills/
+```
+
+```powershell
+git clone https://gitee.com/cqhup/agent-skills.git
+Copy-Item -Recurse agent-skills\local-proxy "$env:USERPROFILE\.workbuddy\skills\"
+```
+
 ---
 
 ## local-proxy
@@ -132,7 +144,10 @@ node "<skill目录>/scripts/proxy.mjs" refresh
 把**仓库链接**和下面这段**提示词**一起发出去。对方只需要把提示词粘给他的 AI，
 再把订阅地址填进尖括号里，剩下全部会自动完成。
 
-**链接**：<https://github.com/N0-1-C/agent-skills>
+**链接**：
+
+- GitHub：<https://github.com/N0-1-C/agent-skills>
+- Gitee 镜像（国内更快）：<https://gitee.com/cqhup/agent-skills>
 
 **提示词**：
 
@@ -142,8 +157,9 @@ node "<skill目录>/scripts/proxy.mjs" refresh
 它的作用：让我交给你的联网命令临时走一个只对这条命令生效的代理，
 不修改我系统的代理开关、路由表或 DNS，用完即走。
 
-1. 安装：从 https://github.com/N0-1-C/agent-skills 获取仓库，把 local-proxy 目录完整复制到
-   ~/.workbuddy/skills/local-proxy/
+1. 安装：从 https://github.com/N0-1-C/agent-skills 获取仓库
+   （国内网络慢的话改用镜像 https://gitee.com/cqhup/agent-skills，内容完全一致）
+   把 local-proxy 目录完整复制到 ~/.workbuddy/skills/local-proxy/
 2. 配置：我的机场订阅地址是 <在这里粘贴你的 Clash 订阅链接>
    请把它单独一行写入 ~/.workbuddy/local-proxy/subscription.txt
    （如果我没有提供地址，就告诉我该去哪儿复制，不要自己编一个）
