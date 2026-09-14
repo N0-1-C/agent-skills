@@ -21,6 +21,36 @@ AI 需要访问外网（最典型的是 `git push` 到 GitHub），但用户系�
 3. 订阅地址等同于账号密码，**不得**打印到对话、写入日志或提交进 git 仓库。
    它保存在 `~/.workbuddy/local-proxy/subscription.txt`。
 
+## 环境要求
+
+**必需**（缺任何一个都跑不起来）
+
+| 项 | 要求 | 说明 |
+|---|---|---|
+| Node.js | **≥ 18** | 用来跑 `proxy.mjs` / `tunnel.mjs`。**不需要任何 npm 依赖**，全用 Node 内置模块 |
+| 操作系统 | **Windows x64** | 内置的 `mihomo.exe` 是 Windows amd64 二进制 |
+| Clash 格式订阅 | 一个订阅地址 | 写进 `~/.workbuddy/local-proxy/subscription.txt` |
+
+**可选**（只影响对应的那类操作，缺了不影响别的）
+
+| 项 | 用在哪 |
+|---|---|
+| `git` | git push / pull / clone —— 最典型的用途 |
+| `curl` | 用 curl 下载或调 API（Windows 10 1803+ 自带） |
+| `python` | 用 Python 脚本联网 |
+| `ssh` 客户端 | 只有 `run --ssh` 需要（OpenSSH for Windows） |
+| Node ≥ 24 | 只有"Node 脚本里用 `fetch`"才需要；Node 22 可用于其他所有场景 |
+
+**不需要**：管理员权限、不用装 VPN 客户端、不用改任何系统设置、不用另外下载内核或 GeoIP 库（都已随 skill 自带）。
+
+一条命令确认全部依赖：
+
+```bash
+node "C:/Users/pc/.workbuddy/skills/local-proxy/scripts/proxy.mjs" doctor
+```
+
+输出分 `host` / `skill` 两段：`[!!]` 是必须修的，`[--]` 是可选项缺失（正常）。
+
 ## 主用法
 
 ```bash

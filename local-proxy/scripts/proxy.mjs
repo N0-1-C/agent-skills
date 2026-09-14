@@ -18,7 +18,7 @@ import net from 'node:net';
 import http from 'node:http';
 import https from 'node:https';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -628,7 +628,30 @@ async function cmdPick(st, argv) {
 
 async function cmdDoctor(st) {
   const checks = [];
-  const add = (name, ok, note = '') => checks.push({ name, ok, note });
+  const add = (name, ok, note = '', optional = false) => checks.push({ name, ok, note, optional });
+
+  const major = Number(process.versions.node.split('.')[0]);
+  const tool = (cmd, args) => {
+    try {
+      const r = spawnSync(cmd, args, { encoding: 'utf8', windowsHide: true, timeout: 20000 });
+      if (r.error || r.status !== 0) return '';
+      return (((r.stdout || '') + (r.stderr || '')).trim().split(/\r?\n/)[0] || '').trim();
+    } catch { return ''; }
+  };
+  const gitV = tool('git', ['--version']);
+  const curlV = tool('curl.exe', ['--version']);
+  const pyV = tool('python', ['--version']);
+  const sshV = tool('ssh', ['-V']);
+
+  out('--- host -----------------------------------------------------------');
+  add('node.js >= 18 (REQUIRED)', major >= 18, 'running v' + process.versions.node);
+  add('node >= 24 for proxy-aware fetch', major >= 24, major >= 24 ? 'ok' : 'optional - run such scripts with C:/Program Files/nodejs/node.exe', true);
+  add('git', !!gitV, gitV || 'not found - only needed for git operations', true);
+  add('curl', !!curlV, curlV ? curlV.slice(0, 46) : 'not found - optional', true);
+  add('python', !!pyV, pyV || 'not found - optional', true);
+  add('ssh client', !!sshV, sshV ? sshV.slice(0, 46) : 'not found - only needed for "run --ssh"', true);
+
+  out('--- skill ----------------------------------------------------------');
   add('core binary', fs.existsSync(BIN), BIN);
   add('geoip database', fs.existsSync(GEO_SRC), GEO_SRC);
   add('subscription url', !!getSubUrl(), getSubUrl() ? 'configured (not printed)' : 'write it into ' + SUB_FILE);
@@ -645,8 +668,14 @@ async function cmdDoctor(st) {
   add('no tun section in config', !sec.tun, sec.tun ? 'FOUND - hardened builder was bypassed' : 'ok');
   const cfgText = fs.existsSync(CONFIG_FILE) ? fs.readFileSync(CONFIG_FILE, 'utf8') : '';
   add('allow-lan disabled', /allow-lan:\s*false/.test(cfgText), '');
-  for (const c of checks) out((c.ok ? '[ok]  ' : '[!!]  ') + c.name + (c.note ? '  - ' + c.note : ''));
-  return checks.every((c) => c.ok) ? 0 : 1;
+  out('--- results --------------------------------------------------------');
+  for (const c of checks) {
+    const mark = c.ok ? '[ok]  ' : (c.optional ? '[--]  ' : '[!!]  ');
+    out(mark + c.name + (c.note ? '  - ' + c.note : ''));
+  }
+  out('');
+  out('[ok] required check passed   [!!] required check FAILED   [--] optional, absence is fine');
+  return checks.every((c) => c.ok || c.optional) ? 0 : 1;
 }
 
 function usage() {

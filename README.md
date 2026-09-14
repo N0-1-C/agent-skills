@@ -58,7 +58,38 @@ node "C:/Users/pc/.workbuddy/skills/local-proxy/scripts/proxy.mjs" run "git push
 | ❌ 不改路由表和 DNS | |
 
 配套的子命令：`status`（状态/额度/出口 IP）、`nodes`、`pick <节点>`、`refresh`（重拉订阅）、
-`doctor`（自检）、`up` / `down`。完整说明见 [local-proxy/SKILL.md](./local-proxy/SKILL.md)。
+`doctor`（自检，含环境依赖检查）、`up` / `down`。完整说明见 [local-proxy/SKILL.md](./local-proxy/SKILL.md)。
+
+### 运行环境
+
+**必需**
+
+| 项 | 要求 | 说明 |
+|---|---|---|
+| Node.js | **≥ 18** | 跑 `proxy.mjs` / `tunnel.mjs`。**无任何 npm 依赖**，只用 Node 内置模块 |
+| 操作系统 | **Windows x64** | 内置的 `mihomo.exe` 是 Windows amd64 二进制 |
+| Clash 格式订阅 | 一个订阅地址 | 写进 `~/.workbuddy/local-proxy/subscription.txt` |
+
+**可选** —— 只影响对应的那类操作，缺了不影响别的功能：
+
+| 项 | 用在哪 |
+|---|---|
+| `git` | git push / pull / clone（最典型的用途） |
+| `curl` | 用 curl 下载或调 API。Windows 10 1803+ 自带 |
+| `python` | 用 Python 脚本联网 |
+| `ssh` 客户端 | 只有 `run --ssh` 需要（OpenSSH for Windows） |
+| Node ≥ 24 | 只有"Node 脚本里用 `fetch`"才需要；Node 22 可用于其他所有场景 |
+
+不需要管理员权限，不需要装任何 VPN 客户端，不需要改动系统设置。
+内核与 GeoIP 库都已随仓库提供，克隆即用。
+
+一条命令确认依赖是否齐备：
+
+```bash
+node "C:/Users/pc/.workbuddy/skills/local-proxy/scripts/proxy.mjs" doctor
+```
+
+输出分 `host` / `skill` 两段，`[!!]` 是必须修的，`[--]` 是可选项缺失（正常）。
 
 ### 你需要准备的
 
