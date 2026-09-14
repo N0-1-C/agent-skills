@@ -14,3 +14,7 @@ run/
 Thumbs.db
 .vscode/
 .idea/
+
+# portable-runtimes：解压出来的运行时目录（几百 MB、上万个文件，绝不入库）
+portable-runtimes/runtime/
+**/portable-runtime/

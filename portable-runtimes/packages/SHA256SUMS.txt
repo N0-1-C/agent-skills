@@ -1,0 +1,16 @@
+﻿# portable-runtimes 内置安装包校验清单
+#
+# 校验方式：  node scripts/setup.mjs --check
+# 生成时间：  2026-09-14
+# 校验算法：  SHA-256
+#
+# 四个包的哈希值均已与官方发布页逐字比对一致：
+#   node-*          https://nodejs.org/dist/<版本>/SHASUMS256.txt
+#   python-*        https://www.python.org/ftp/python/3.14.7/
+#   PortableGit-*   https://github.com/git-for-windows/git/releases/tag/v2.55.0.windows.5
+#                   （哈希写在 release notes 的 Filename | SHA-256 表格里）
+#
+158f7685b44de51f6c0df1d153526cbcd3e1bc739a8dfc607721cef75de9e541  node-v24.21.0-win-x64.zip
+cf02f5d0c06c794b84f277177d5cf3743d0924ca49f6641cd435dd7cb6ee9085  node-v26.8.2-win-x64.zip
+5aa8a20f6e9abb2c755f0e73c91c687701a46b309ad84a0ca6509380fa4ae290  PortableGit-2.55.0.5-64-bit.7z.exe
+d297e5ff019966817ad8502465176139f2d3d840fa4ed84b13bed399a6ab1f15  python-3.14.7-embed-amd64.zip
