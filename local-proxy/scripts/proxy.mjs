@@ -385,6 +385,22 @@ async function warmUp(st, tries = 3) {
   return { ok: false, attempts: tries };
 }
 
+/**
+ * Environment for the core process.
+ *
+ * Proxy variables are stripped on purpose: if the ambient environment (a VPN app,
+ * a shell profile, or a stray setx) points HTTP_PROXY at 127.0.0.1:7891, a core
+ * that honoured it would dial itself and loop. The core never needs a proxy to
+ * reach the internet - it *is* the proxy.
+ */
+function coreEnv() {
+  const env = { ...process.env };
+  for (const k of ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'all_proxy', 'NODE_USE_ENV_PROXY']) {
+    delete env[k];
+  }
+  return env;
+}
+
 async function startCore(st) {
   if (!fs.existsSync(BIN)) throw new Error('core binary missing: ' + BIN);
   if (!fs.existsSync(CONFIG_FILE)) throw new Error('config missing - run: proxy.mjs refresh');
@@ -393,7 +409,7 @@ async function startCore(st) {
 
   const fd = fs.openSync(LOG_FILE, 'a');
   const child = spawn(BIN, ['-d', RUN_DIR, '-f', CONFIG_FILE], {
-    detached: true, stdio: ['ignore', fd, fd], windowsHide: true,
+    detached: true, stdio: ['ignore', fd, fd], windowsHide: true, env: coreEnv(),
   });
   fs.writeFileSync(PID_FILE, String(child.pid));
   child.unref();
@@ -684,7 +700,8 @@ async function cmdPick(st, argv) {
 
 async function cmdDoctor(st) {
   const checks = [];
-  const add = (name, ok, note = '', optional = false) => checks.push({ name, ok, note, optional });
+  let group = 'host requirements';
+  const add = (name, ok, note = '', optional = false) => checks.push({ name, ok, note, optional, group });
 
   const major = Number(process.versions.node.split('.')[0]);
   const tool = (cmd, args) => {
@@ -699,7 +716,6 @@ async function cmdDoctor(st) {
   const pyV = tool('python', ['--version']);
   const sshV = tool('ssh', ['-V']);
 
-  out('--- host -----------------------------------------------------------');
   add('node.js >= 18 (REQUIRED)', major >= 18, 'running v' + process.versions.node);
   add('node >= 24 for proxy-aware fetch', major >= 24, major >= 24 ? 'ok' : 'optional - run such scripts with C:/Program Files/nodejs/node.exe', true);
   add('git', !!gitV, gitV || 'not found - only needed for git operations', true);
@@ -707,7 +723,21 @@ async function cmdDoctor(st) {
   add('python', !!pyV, pyV || 'not found - optional', true);
   add('ssh client', !!sshV, sshV ? sshV.slice(0, 46) : 'not found - only needed for "run --ssh"', true);
 
-  out('--- skill ----------------------------------------------------------');
+  group = 'other proxy / vpn software on this machine';
+  const ambientKeys = ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'all_proxy'];
+  const ambient = ambientKeys.filter((k) => process.env[k]).map((k) => k + '=' + process.env[k]);
+  const ambientPorts = ambient
+    .map((s) => Number((/:(\d+)\s*$/.exec(s) || [])[1]))
+    .filter((n) => Number.isFinite(n));
+  const otherProxies = [];
+  for (const p of [...new Set([7890, 7897, 10808, 10809, 1080, 8080, ...ambientPorts])]) {
+    if (await portOpen(p, 250)) otherProxies.push(p);
+  }
+  const conflicts = otherProxies.filter((p) => p === st.proxyPort || p === st.controllerPort);
+  add('ambient *_PROXY env vars', true, ambient.length ? ambient[0] + (ambient.length > 1 ? '  (+' + (ambient.length - 1) + ' more)' : '') + '   <- run overrides these for its child' : 'none set', true);
+  add('other listeners on proxy ports', !conflicts.length, otherProxies.length ? otherProxies.join(', ') + (conflicts.length ? '   <- CONFLICT with our port, change it in ' + SETTINGS_FILE : '   <- independent, coexists fine') : 'none found', true);
+
+  group = 'skill files and config';
   add('core binary', fs.existsSync(BIN), BIN);
   add('geoip database', fs.existsSync(GEO_SRC), GEO_SRC);
   add('subscription url', !!getSubUrl(), getSubUrl() ? 'configured (not printed)' : 'write it into ' + SUB_FILE);
@@ -724,8 +754,13 @@ async function cmdDoctor(st) {
   add('no tun section in config', !sec.tun, sec.tun ? 'FOUND - hardened builder was bypassed' : 'ok');
   const cfgText = fs.existsSync(CONFIG_FILE) ? fs.readFileSync(CONFIG_FILE, 'utf8') : '';
   add('allow-lan disabled', /allow-lan:\s*false/.test(cfgText), '');
-  out('--- results --------------------------------------------------------');
+  let lastGroup = '';
   for (const c of checks) {
+    if (c.group !== lastGroup) {
+      out('');
+      out('--- ' + c.group + ' ' + '-'.repeat(Math.max(3, 58 - c.group.length)));
+      lastGroup = c.group;
+    }
     const mark = c.ok ? '[ok]  ' : (c.optional ? '[--]  ' : '[!!]  ');
     out(mark + c.name + (c.note ? '  - ' + c.note : ''));
   }

@@ -117,6 +117,30 @@ Get-DnsClientServerAddress -AddressFamily IPv4                                  
 
 ---
 
+### 电脑上开着别的 VPN / 代理软件
+
+**正常共存，不需要先关掉它。** 排查顺序：
+
+1. `proxy.mjs doctor` → 看 `other proxy / vpn software on this machine` 那一段，
+   它会列出环境变量里的 `*_PROXY` 取值和所有正在监听的代理端口。
+   如果 7891 / 9091 出现在列表里 → 端口冲突，改 `settings.json`，`doctor` 会直接标出 `CONFLICT`。
+2. 若对方是 **TUN 模式**（建虚拟网卡 + 改全局路由），会形成"代理套代理"：能通，但更慢更绕。
+   想避免就让对方把发给 `127.0.0.1:7891` 的流量直连，或者这种场景干脆直接用对方那条通道。
+3. **系统代理是否开着不用管。** 本 skill 不依赖也不修改它；而 git / curl 只读环境变量，不读注册表，
+   所以系统代理对我们启动的子进程没有影响。
+
+---
+
+### 某些程序被沙箱拦截
+
+WorkBuddy 的沙箱带程序黑名单。实测 **`reg.exe` 会被拦截**，报
+`PROGRAM BLOCKED BY SECURITY POLICY`，且无法通过换 shell 绕过。
+
+因此 `doctor` 已不使用 `reg.exe` 读系统代理设置（那一项对本 skill 本来也无意义）。
+自己写脚本时若要读注册表，请换别的途径，不要在沙箱里调 `reg.exe`。
+
+---
+
 ## 内核日志
 
 `~/.workbuddy/local-proxy/mihomo.log`，级别 `warning`，正常启动只有 4 行：
