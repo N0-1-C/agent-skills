@@ -6,6 +6,17 @@ agent_created: true
 
 # local-proxy
 
+## 路径约定（先看这里）
+
+下文命令里的 `<skill目录>` 指**本技能所在目录**，也就是本文件所在的那个目录：
+
+- AI 调用时：直接用技能元信息里给出的 base directory，不要猜、不要沿用别人机器上的路径。
+- 人工使用时：替换成你自己的实际路径 —— 用户级 `~/.workbuddy/skills/local-proxy`，项目级 `<项目>/.workbuddy/skills/local-proxy`。
+- `<node24>` 指本机 Node ≥ 24 的 `node.exe` 绝对路径（只有「Node 脚本里要用 `fetch`」时才需要；其它场景用当前 `node` 即可）。
+
+运行期数据（订阅地址、`settings.json`、生成的配置、日志）固定在 `~/.workbuddy/local-proxy/`，
+**与技能目录装在哪无关** —— 所以技能目录随便挪，不用重新配置。
+
 ## 解决什么问题
 
 AI 需要访问外网（最典型的是 `git push` 到 GitHub），但用户系统上并没有开 VPN。
@@ -21,7 +32,7 @@ AI 需要访问外网（最典型的是 `git push` 到 GitHub），但用户系�
 3. 跑一次让配置生效：
 
 ```bash
-node "C:/Users/pc/.workbuddy/skills/local-proxy/scripts/proxy.mjs" refresh
+node "<skill目录>/scripts/proxy.mjs" refresh
 ```
 
 看到 `config written` 加一行套餐信息（已用流量 / 到期日）就成功了。
@@ -64,7 +75,7 @@ node "C:/Users/pc/.workbuddy/skills/local-proxy/scripts/proxy.mjs" refresh
 一条命令确认全部依赖：
 
 ```bash
-node "C:/Users/pc/.workbuddy/skills/local-proxy/scripts/proxy.mjs" doctor
+node "<skill目录>/scripts/proxy.mjs" doctor
 ```
 
 输出分 `host` / `skill` 两段：`[!!]` 是必须修的，`[--]` 是可选项缺失（正常）。
@@ -72,20 +83,20 @@ node "C:/Users/pc/.workbuddy/skills/local-proxy/scripts/proxy.mjs" doctor
 ## 主用法
 
 ```bash
-node "C:/Users/pc/.workbuddy/skills/local-proxy/scripts/proxy.mjs" <命令> [参数]
+node "<skill目录>/scripts/proxy.mjs" <命令> [参数]
 ```
 
 需要联网的命令一律套在 `run` 里：
 
 ```bash
 # 单条命令
-node "C:/.../proxy.mjs" run "git push origin main"
+node "<skill目录>/scripts/proxy.mjs" run "git push origin main"
 
 # 多条命令串起来（推荐，一次调用只启动一次内核）
-node "C:/.../proxy.mjs" run "git add -A && git commit -m \"update\" && git push"
+node "<skill目录>/scripts/proxy.mjs" run "git add -A && git commit -m \"update\" && git push"
 
 # ssh:// 远程的仓库要加 --ssh
-node "C:/.../proxy.mjs" run --ssh "git push origin main"
+node "<skill目录>/scripts/proxy.mjs" run --ssh "git push origin main"
 ```
 
 ## 命令表
@@ -127,8 +138,10 @@ node "C:/.../proxy.mjs" run --ssh "git push origin main"
 Node 写脚本要用 `fetch` 时，改走 v24：
 
 ```bash
-node "C:/.../proxy.mjs" run "\"C:/Program Files/nodejs/node.exe\" your-script.mjs"
+node "<skill目录>/scripts/proxy.mjs" run "\"<node24>\" your-script.mjs"
 ```
+
+（`<node24>` = 本机 Node ≥ 24 的 `node.exe` 绝对路径，见开头「路径约定」。）
 
 ### 3. SSH 远程要加 `--ssh`
 

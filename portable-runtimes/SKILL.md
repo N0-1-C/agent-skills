@@ -25,6 +25,18 @@ agent_created: true
 
 四个包的 SHA-256 都已与官方发布页逐字比对一致，校验清单在 `packages/SHA256SUMS.txt`，随时可复查。
 
+## 路径约定
+
+下文命令里的占位符都指**本机实际路径**，仓库里不写死任何机器路径：
+
+| 占位符 | 含义 |
+|---|---|
+| `<技能目录>` / `<本技能>` | 本技能所在目录，即本文件所在的那个目录。AI 从技能元信息的 base directory 取 |
+| `<local-proxy>` | 同仓库 `local-proxy` 技能所在目录（只在「更新内置包」「离线装 pip」两处用到） |
+| `<node24>` | 本机 Node ≥ 24 的 `node.exe` 绝对路径（脚本里用 `fetch` 时需要） |
+
+`D:\tools` 是**示例**目标目录，不是必须的路径 —— 换成你自己的短路径即可。
+
 ## 主用法
 
 ```bash
@@ -152,7 +164,7 @@ embeddable 包是最小化的：**只有标准库 + pip**（本技能已帮你�
 
 ```bash
 # 1. 用 local-proxy 拉最新的三个包（会自动打印 SHA-256）
-node "<local-proxy>/scripts/proxy.mjs" run "node \"C:\Users\pc\node24\node.exe\" <local-proxy>/references/fetch-dist.mjs D:\tmp --resolve"
+node "<local-proxy>/scripts/proxy.mjs" run "node \"<node24>\" <local-proxy>/references/fetch-dist.mjs <临时目录> --resolve"
 
 # 2. 把新包替换进 packages/，文件名不要改格式
 # 3. 重新生成校验清单

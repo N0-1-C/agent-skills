@@ -7,8 +7,10 @@
 ## 先跑自检
 
 ```bash
-node "C:/Users/pc/.workbuddy/skills/local-proxy/scripts/proxy.mjs" doctor
+node "<skill目录>/scripts/proxy.mjs" doctor
 ```
+
+`<skill目录>` 的含义见 `../SKILL.md` 开头的「路径约定」。
 
 九项检查应全为 `[ok]`。任何 `[!!]` 项的备注里通常已写明下一步。
 
@@ -46,7 +48,7 @@ Node 内置 `fetch` 基于 undici，**不读 `HTTP_PROXY` 环境变量**，会�
 - Node 22 及以下：改用 v24 执行脚本。
 
 ```bash
-node "C:/.../proxy.mjs" run "\"C:/Program Files/nodejs/node.exe\" script.mjs"
+node "<skill目录>/scripts/proxy.mjs" run "\"<node24>\" script.mjs"
 ```
 
 对照：curl、git、Python 都正常读环境变量，不受此影响。

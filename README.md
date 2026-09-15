@@ -53,7 +53,7 @@ Get-ChildItem agent-skills -Directory | Copy-Item -Recurse -Destination "$env:US
 **一条命令就是全部用法：**
 
 ```bash
-node "C:/Users/pc/.workbuddy/skills/local-proxy/scripts/proxy.mjs" run "git push origin main"
+node "<技能目录>/scripts/proxy.mjs" run "git push origin main"
 ```
 
 这条命令内部完成：启动本地内核（`127.0.0.1:7891`）→ 给这条命令注入 `HTTP_PROXY` / `HTTPS_PROXY`
@@ -99,7 +99,7 @@ node "C:/Users/pc/.workbuddy/skills/local-proxy/scripts/proxy.mjs" run "git push
 一条命令确认依赖是否齐备：
 
 ```bash
-node "C:/Users/pc/.workbuddy/skills/local-proxy/scripts/proxy.mjs" doctor
+node "<技能目录>/scripts/proxy.mjs" doctor
 ```
 
 输出分 `host` / `skill` 两段，`[!!]` 是必须修的，`[--]` 是可选项缺失（正常）。
@@ -270,7 +270,9 @@ Node / Python / Git，但不想装任何东西、不想污染系统。
 
 ## 说明
 
-- 技能文档里出现的绝对路径（`C:\Users\...`）是本机的，换机器时按需调整。
+- **文档里不再写死机器路径。**命令示例统一用占位符：`<技能目录>` 指该技能所在的目录，
+  `<node24>` 指本机 Node ≥ 24 的 `node.exe` 绝对路径。AI 调用时从技能元信息的 base directory 取真实路径，
+  人工使用时替换成自己的路径即可。运行期数据仍固定放在 `~/.workbuddy/<技能名>/`，跟技能装在哪无关。
 - `local-proxy/bin/mihomo.exe` 取自 [MetaCubeX/mihomo](https://github.com/MetaCubeX/mihomo) 官方 release
   （`windows-amd64-v1` 通用兼容版），未修改。介意二进制来源的话可以自行替换同名文件。
 - `portable-runtimes/packages/` 里的四个包全部是官方原版、未修改，只是原样转存进仓库方便离线取用：

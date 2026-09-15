@@ -727,7 +727,7 @@ async function cmdDoctor(st) {
   const sshV = tool('ssh', ['-V']);
 
   add('node.js >= 18 (REQUIRED)', major >= 18, 'running v' + process.versions.node);
-  add('node >= 24 for proxy-aware fetch', major >= 24, major >= 24 ? 'ok' : 'optional - run such scripts with C:/Program Files/nodejs/node.exe', true);
+  add('node >= 24 for proxy-aware fetch', major >= 24, major >= 24 ? 'ok' : 'optional - only needed when a script uses fetch; run it with a Node >= 24 node.exe (its absolute path)', true);
   add('git', !!gitV, gitV || 'not found - only needed for git operations', true);
   add('curl', !!curlV, curlV ? curlV.slice(0, 46) : 'not found - optional', true);
   add('python', !!pyV, pyV || 'not found - optional', true);
