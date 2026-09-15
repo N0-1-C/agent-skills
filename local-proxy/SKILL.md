@@ -64,7 +64,7 @@ node "<skill目录>/scripts/proxy.mjs" refresh
 
 | 项 | 用在哪 |
 |---|---|
-| `git` | git push / pull / clone —— 最典型的用途 |
+| `git` | git push / pull / clone —— 最典型的用途。**不在 PATH 上时就写全路径**（便携版 git 很常见） |
 | `curl` | 用 curl 下载或调 API（Windows 10 1803+ 自带） |
 | `python` | 用 Python 脚本联网 |
 | `ssh` 客户端 | 只有 `run --ssh` 需要（OpenSSH for Windows） |
@@ -122,11 +122,11 @@ node "<skill目录>/scripts/proxy.mjs" run --ssh "git push origin main"
 （`status` 会显示 `DOWN` + `pid ... (stale)`）。
 因此启动与执行必须落在同一次调用内 —— 这正是 `run` 做的事。
 
-### 2. 各类客户端是否认 `HTTP_PROXY` 环境变量（本机已实测）
+### 2. 各类客户端是否认 `HTTP_PROXY` 环境变量（实测）
 
 | 客户端 | 走代理 | 说明 |
 |---|---|---|
-| `git`（https 远程） | ✅ | 本机用 GCM 存凭据，直接可用 |
+| `git`（https 远程） | ✅ | 凭据已存好时直接可用；没存过会等登录，见 §4 |
 | `git`（ssh 远程） | 需 `--ssh` | 见下一节 |
 | `curl` | ✅ | |
 | Python `requests` / `urllib` | ✅ | 默认 `trust_env=True` |
@@ -153,27 +153,39 @@ node "<skill目录>/scripts/proxy.mjs" run "\"<node24>\" your-script.mjs"
   所以 `github.com` / `gist.github.com` 被自动改写到 `ssh.github.com:443`（GitHub 官方的备用端点），实测可拿到 banner。
 - 使用 `--ssh` 会把主机密钥写入 `~/.ssh/known_hosts`（等价于首次连接时确认），属于预期行为。
 
-如果你用 HTTPS 远程（本机就是 HTTPS + 凭据管理器），不需要 `--ssh`。
+用 HTTPS 远程的话不需要 `--ssh`；凭据的事见 §4。
 
-### 4. 首次推送可能需要凭据
+### 4. 首次推送可能需要凭据（不要假设已经存过）
 
-本机 git 全局装了 Git Credential Manager。凭据已存过时 `git push` 直接成功；
-若该仓库从没推过，GCM 可能弹窗或等待输入，在非交互环境里表现为**命令卡住不动**。
-遇到这种情况不要反复重试，让用户先在自己终端里手动推一次完成登录，之后 AI 就能静默使用。
+`git` 本身可能就不在 PATH 上（便携版 git 很常见）。`doctor` 里那行 `[--] git`
+只在你不用 git 时才无所谓 —— 要用就先确认调得到，调不到就写全路径。
+
+凭据同理，**不要假设已经存过**：`~/.gitconfig` 不存在、凭据管理器里没有
+`git:https://github.com`，都是常态。这时第一次 `git push` **必然需要交互式登录**，
+在非交互环境里表现为**命令卡住不动**。
+
+遇到这种情况不要反复重试：先停掉卡住的命令，让用户在自己的终端里手动 `git push` 一次完成登录。
+只要那次选择把凭据存进了凭据管理器，之后 AI 就能静默使用。
+
+> 要探测先禁用交互再加超时，否则会被凭据 helper 挂住：
+> 设 `GIT_TERMINAL_PROMPT=0`，用 Git Credential Manager 的话再加 `GCM_INTERACTIVE=never`。
 
 ### 5. 要调 GitHub API 时怎么拿凭据
 
-本机 Windows 凭据管理器**已存有** `git:https://github.com` 的凭据
-（用户 `N0-1-C`，经典 PAT，scopes 为 `gist, repo, workflow`）。
-需要带鉴权调 API 时用 `git credential fill` 取 token，但**绝不能把 token 打印出来或落盘**：
+**先探测，不要假设有。** 唯一的途径是 `git credential fill`，而本机没存过凭据时
+它会挂起等输入 —— 所以必须像下面这样禁用交互，并自己加超时：
 
 ```js
-const c = spawn('git', ['credential', 'fill'], { stdio: ['pipe', 'pipe', 'pipe'] });
+const c = spawn('git', ['credential', 'fill'], {
+  stdio: ['pipe', 'pipe', 'pipe'],
+  env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never' },
+});
 c.stdin.end('protocol=https\nhost=github.com\n\n');   // 从 stdout 解析出 password，仅用于 Authorization 头
 ```
 
-实测 `api.github.com/user/repos` 正常返回（9 个公开 + 2 个私有），说明 AI 可以在没有任何人工干预的情况下
-完成带鉴权的 GitHub 读写。
+有输出才用 token，且**绝不能把 token 打印出来或落盘**；
+没有输出（或超时）就是**没有凭据** —— 此时不要重试，直接告诉用户需要先手动登录一次，
+或由用户提供 PAT 后再继续。凭据一旦存好，同一段代码就能静默复用。
 
 ## 电脑上已经开了 VPN / 代理软件时会怎样
 
